@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import * as ngrok from 'ngrok';
+import ngrok from 'ngrok';
 
 @Injectable()
 class AppService {
@@ -25,31 +25,31 @@ class AppService {
     );
 
     this.part1 = data?.part1 || '';
-    console.log('✅ Birinchi qism (part1):', this.part1);
+    console.log('✅ First part received (part1):', this.part1);
     return this.part1;
   }
 
   savePart2(part2: string) {
     if (!part2) {
-      console.error('❌ part2 qiymati bo‘sh yoki aniqlanmadi');
+      console.error('❌ Part2 is empty or not provided');
       return;
     }
     this.part2 = part2;
-    console.log('✅ Ikkinchi qism (part2) qabul qilindi:', this.part2);
+    console.log('✅ Second part received (part2):', this.part2);
   }
 
   async getFinalMessage() {
     if (!this.part1 || !this.part2) {
-      throw new Error('❌ part1 yoki part2 hali mavjud emas!');
+      throw new Error('❌ Part1 or part2 is not available yet!');
     }
 
     const fullCode = `${this.part1}${this.part2}`;
-    console.log('🔐 Birlashtirilgan kod:', fullCode);
+    console.log('🔐 Combined code:', fullCode);
 
     const url = `https://test.icorp.uz/interview.php?code=${fullCode}`;
     const { data } = await firstValueFrom(this.http.get(url));
 
-    console.log('🎉 Yakuniy xabar:', data);
+    console.log('🎉 Final message:', data);
     return { code: fullCode, message: data };
   }
 }
@@ -62,18 +62,17 @@ class AppController {
 
   @Get('start')
   async start() {
-    this.ngrokUrl = await ngrok.connect(3000);
-    const callbackUrl = `${this.ngrokUrl}/callback`;
+    const callbackUrl = `https://yuette-seriocomic-monnie.ngrok-free.dev/callback`;
     console.log('🌐 Callback URL:', callbackUrl);
 
-    const msg = 'Salom test API!';
+    const msg = 'Hello test API!';
     const part1 = await this.appService.sendMessage(msg, callbackUrl);
-    return { message: 'Birinchi qism olindi', part1, callbackUrl };
+    return { message: 'First part received', part1, callbackUrl };
   }
 
   @Post('callback')
   async callback(@Body() body: any) {
-    console.log('📩 Callback ma’lumot:', body);
+    console.log('📩 Callback data:', body);
     const part2 = body?.part2;
     this.appService.savePart2(part2);
     return { status: 'ok', received: true };
@@ -99,11 +98,12 @@ async function bootstrap() {
   app.use(require('body-parser').urlencoded({ extended: true }));
 
   await app.listen(3000);
-  console.log('🚀 Server ishga tushdi: http://localhost:3000');
-  console.log('➡️ 1. GET /start → birinchi qismni olish va ngrok URL yaratish');
+  console.log('🚀 Server started: http://localhost:3000');
+  console.log('➡️ 1. GET /start → get first part and generate ngrok URL');
   console.log(
-    '➡️ 2. POST /callback → ikkinchi qism shu yerga keladi (avtomatik)',
+    '➡️ 2. POST /callback → second part will be received here (automatic)',
   );
-  console.log('➡️ 3. GET /final → yakuniy xabarni olish');
+  console.log('➡️ 3. GET /final → get final message');
 }
+
 bootstrap();
